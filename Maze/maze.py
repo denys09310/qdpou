@@ -1,9 +1,12 @@
 from random import choice
 from pygame import *
+import pygame_menu
 
 init()
 font.init()
+font2 = font.SysFont('Impact', 30)
 font1 = font.SysFont('Impact', 100)
+timer_text = font2.render('time:',True,(255,255,255) )
 game_over_text = font1.render('GAME_OVER', True, (255, 0, 0))
 win_text = font1.render('YOU WIN', True, (255, 0, 0))
 mixer.init()
@@ -11,13 +14,13 @@ mixer.music.load('jungles.ogg')
 mixer.music.play()
 mixer.music.set_volume(0.2)
 
-TILESIZE = 40
+TILESIZE = 30
 
 
 infoObject = display.Info()
-WIDTH, HEIGHT = infoObject.current_w, infoObject.current_h
+WIDTH, HEIGHT = TILESIZE*50,TILESIZE*27
 
-window = display.set_mode((WIDTH, HEIGHT), FULLSCREEN)
+window = display.set_mode((WIDTH, HEIGHT), )
 FPS = 60
 clock = time.Clock()
 
@@ -47,10 +50,10 @@ class Player(Sprite):
     def __init__(self, sprite_img, width, height, x, y, controls):
         super().__init__(sprite_img, width, height, x, y)
         self.hp = 100
-        self.speed = 15  
+        self.speed = 7
         self.controls = controls
         self.is_jumping = False
-        self.jump_speed = 15
+        self.jump_speed = 10
         self.gravity = 1
         self.velocity_y = 0
 
@@ -174,13 +177,46 @@ with open("map.txt", "r") as f:
             x += TILESIZE
         y += TILESIZE
         x = 0
+total_time= 100
+
+def set_difficulty(selected, value):
+    """
+    Set the difficulty of the game.
+    """
+    global total_time
+    total_time=value
+
+def start_the_game():
+    # Do the job here !
+    global run
+    run = True
+    menu.disable()
+
+#завантажуємо картинку
+myimage = pygame_menu.baseimage.BaseImage(
+    image_path='background.jpg',
+    drawing_mode=pygame_menu.baseimage.IMAGE_MODE_REPEAT_XY,
+)
+#створюємо власну тему - копію стандартної
+mytheme = pygame_menu.themes.THEME_DARK.copy()
+# колір верхньої панелі (останній параметр - 0 робить її прозорою)
+mytheme.title_background_color=(255, 255, 255, 0) 
+#задаємо картинку для фону
+mytheme.background_color = myimage
+menu = pygame_menu.Menu('Lomka', WIDTH, HEIGHT,
+                       theme=mytheme)   
+
+user_name = menu.add.text_input("name :", default='Анонім')
+menu.add.selector('difficulty :', [('Hard', 50), ('Easy', 100)], onchange=set_difficulty)
+menu.add.button('Play', start_the_game)
+menu.add.button('Quit', pygame_menu.events.EXIT)
+menu.mainloop(window)
 
 run = True
 finish = False
 game_win = False
-timer_text=font2.render('Time: 0',True,(255,255,255))
-curernt_time = 0
-start_time = time.get_ticks()
+start_time=time.get_ticks()
+
 
 while run:
     for e in event.get():
@@ -198,14 +234,23 @@ while run:
         game_win = True
 
     all_sprites.draw(window)
-
+    window.blit(timer_text,(25,20))
     if not finish:
         all_sprites.update()
+        now = time.get_ticks()
+        carent_time=now - start_time
+        time_left=total_time-carent_time/1000
+        timer_text = font2.render(f'time:{int(time_left)}',True,(255,255,255) )
+        if time_left <=0:
+            finish=True            
+
+
+
     else:
         if game_win:
-            window.blit(win_text, (300, 300))
+            window.blit(win_text, (WIDTH/2-game_over_text.get_width()/2,HEIGHT/2-game_over_text.get_height()/2))
         else:
-            window.blit(game_over_text, (300, 300))
+            window.blit(game_over_text, (WIDTH/2-game_over_text.get_width()/2,HEIGHT/2-game_over_text.get_height()/2))
 
     display.update()
     clock.tick(FPS)
